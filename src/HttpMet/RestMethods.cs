@@ -1,4 +1,4 @@
-﻿namespace FluentRest
+﻿namespace HttpMet
 {
     /// <summary>
     /// The usual standard https methods

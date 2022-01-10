@@ -4,7 +4,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Reflection;
 
-namespace FluentRest
+namespace HttpMet
 {
     /// <summary>
     /// The Rest Client base to create a rest http request

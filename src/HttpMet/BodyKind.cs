@@ -1,4 +1,4 @@
-﻿namespace FluentRest
+﻿namespace HttpMet
 {
     /// <summary>
     /// This enum describe several type of body format

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
-namespace FluentRest
+namespace HttpMet
 {
     /// <summary>
     /// This class manage the response source to handle by user

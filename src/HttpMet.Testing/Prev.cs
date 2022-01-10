@@ -4,7 +4,7 @@ using System.Text;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace FluentRest.Test
+namespace HttpMet.Test
 {
     interface IObject2
     {

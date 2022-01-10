@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace FluentRest
+namespace HttpMet
 {
     /// <summary>
     /// Rest Entity Attribute help to set an entity as request to send via json or other serializer

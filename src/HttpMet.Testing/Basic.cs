@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using System;
 
-namespace FluentRest.Test
+namespace HttpMet.Test
 {
     public class Tests
     {

@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31105.61
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FluentRest", "FluentRest\FluentRest.csproj", "{27726DE4-281C-4D82-981E-86CD0BF12289}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HttpMet", "src\HttpMet\HttpMet.csproj", "{27726DE4-281C-4D82-981E-86CD0BF12289}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FluentRest.Test", "FluentRest.Test\FluentRest.Test.csproj", "{D5336E89-0C3C-4713-9B56-AA92A0314FF4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HttpMet.Testing", "src\HttpMet.Testing\HttpMet.Testing.csproj", "{D5336E89-0C3C-4713-9B56-AA92A0314FF4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

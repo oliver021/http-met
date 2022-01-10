@@ -4,7 +4,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FluentRest
+namespace HttpMet
 {
     /// <summary>
     /// Http serializer contract for set body and fetch data from response
