@@ -7,10 +7,19 @@ using System.Threading.Tasks;
 
 namespace HttpMet
 {
+    /// <summary>
+    /// Many helper to create rest request and another types request templates
+    /// </summary>
     public static class RestFactory
     {
-        private static IServiceProvider provider { get; }
+        /// <summary>
+        /// Internal service provider
+        /// </summary>
+        internal static IServiceProvider Provider { get; }
 
+        /// <summary>
+        /// Serializer instance to serialize/deserialize tasks
+        /// </summary>
         public static IRestSerializer Serializer { get; private set; }
         
         /// <summary>
@@ -24,7 +33,7 @@ namespace HttpMet
             collection.AddHttpClient<RestClient>();
 
             // set internal provider
-            provider = collection.BuildServiceProvider();
+            Provider = collection.BuildServiceProvider();
         }
 
         /// <summary>
@@ -109,7 +118,7 @@ namespace HttpMet
             return async (arg) =>
             {
                 // get http client from provider
-                var http = provider.GetService<HttpClient>();
+                var http = Provider.GetService<HttpClient>();
 
                 // init http request
                 var msg = new HttpRequestMessage();
@@ -141,7 +150,7 @@ namespace HttpMet
             return async (arg, arg2, arg3) => 
             {
                 // get http client from provider
-                var http = provider.GetService<HttpClient>();
+                var http = Provider.GetService<HttpClient>();
 
                 // init http request
                 var msg = new HttpRequestMessage();
@@ -173,7 +182,7 @@ namespace HttpMet
             return async (arg, arg2) =>
             {
                 // get http client from provider
-                var http = provider.GetService<HttpClient>();
+                var http = Provider.GetService<HttpClient>();
 
                 // init http request
                 var msg = new HttpRequestMessage();
@@ -206,7 +215,7 @@ namespace HttpMet
             return async (arg, arg2, arg3, arg4) =>
             {
                 // get http client from provider
-                var http = provider.GetService<HttpClient>();
+                var http = Provider.GetService<HttpClient>();
 
                 // init http request
                 var msg = new HttpRequestMessage();

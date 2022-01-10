@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Reflection;
+using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HttpMet
 {
@@ -12,6 +14,11 @@ namespace HttpMet
     /// </summary>
     public class RestClient : IDisposable
     {
+        /// <summary>
+        /// A new instance of this class without preset url base
+        /// </summary>
+        public static RestClient New { get => RestFactory.Provider.GetService<RestClient>(); }
+
         /// <summary>
         /// The uri base to build a complete request url
         /// </summary>
@@ -32,7 +39,7 @@ namespace HttpMet
         /// </summary>
         public RestClient()
         {
-            _client = new HttpClient();
+            _client = RestFactory.Provider.GetService<HttpClient>();
         }
 
         /// <summary>
@@ -162,7 +169,7 @@ namespace HttpMet
             switch (method)
             {
                 case RestMethods.Get:
-                    return GetAsync(uri, _ToDictionary(request));
+                    return GetAsync(uri + QueryFromObject(request));
 
                 case RestMethods.Post:
                     return PostAsync(uri, request);
@@ -171,7 +178,7 @@ namespace HttpMet
                     return PutAsync(uri, request);
 
                 case RestMethods.Delete:
-                    return DeleteAsync(uri, _ToDictionary(request));
+                    return DeleteAsync(uri + QueryFromObject(request));
 
                 // for default other method is not supported in this operation
                 default:
@@ -180,25 +187,14 @@ namespace HttpMet
         }
 
         /// <summary>
-        /// Simple extra helper to run a process to fetch data from an object and convert to a dictionary
-        /// with key-value structure, then you can use a model class instance as query  container
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        private Dictionary<string, string> _ToDictionary(object request)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// This method make a http request by GET method and recive a dictionary as query params
         /// </summary>
         /// <param name="path"></param>
         /// <param name="queryParams"></param>
         /// <returns></returns>
-        public async Task<ResponseHandler> GetAsync(string path, Dictionary<string,string> queryParams)
+        public async Task<ResponseHandler> GetAsync(string path, Dictionary<string, object> queryParams = null)
         {
-            var httpMsg = new HttpRequestMessage(HttpMethod.Get, _uriBase.OriginalString + path + _makeQuery(queryParams));
+            var httpMsg = new HttpRequestMessage(HttpMethod.Get, _uriBase.OriginalString + path + MakeQuery(queryParams));
 
             // send request and create handler object
             return new ResponseHandler(await _client.SendAsync(httpMsg));
@@ -210,9 +206,9 @@ namespace HttpMet
         /// <param name="path"></param>
         /// <param name="queryParams"></param>
         /// <returns></returns>
-        public async Task<ResponseHandler> PostAsync(string path, object data, Dictionary<string, string> queryParams = null, BodyKind bodyKind = BodyKind.Json)
+        public async Task<ResponseHandler> PostAsync(string path, object data, Dictionary<string, object> queryParams = null, BodyKind bodyKind = BodyKind.Json)
         {
-            var httpMsg = new HttpRequestMessage(HttpMethod.Post, _uriBase.OriginalString + path + _makeQuery(queryParams));
+            var httpMsg = new HttpRequestMessage(HttpMethod.Post, _uriBase.OriginalString + path + MakeQuery(queryParams));
 
             // set content in body
             SetContent(data, bodyKind, httpMsg);
@@ -227,9 +223,9 @@ namespace HttpMet
         /// <param name="path"></param>
         /// <param name="queryParams"></param>
         /// <returns></returns>
-        public async Task<ResponseHandler> PutAsync(string path, object data, Dictionary<string, string> queryParams = null, BodyKind bodyKind = BodyKind.Json)
+        public async Task<ResponseHandler> PutAsync(string path, object data, Dictionary<string, object> queryParams = null, BodyKind bodyKind = BodyKind.Json)
         {
-            var httpMsg = new HttpRequestMessage(HttpMethod.Put, _uriBase.OriginalString + path + _makeQuery(queryParams));
+            var httpMsg = new HttpRequestMessage(HttpMethod.Put, _uriBase.OriginalString + path + MakeQuery(queryParams));
 
             // set content in body
             SetContent(data, bodyKind, httpMsg);
@@ -244,9 +240,9 @@ namespace HttpMet
         /// <param name="path"></param>
         /// <param name="queryParams"></param>
         /// <returns></returns>
-        public async Task<ResponseHandler> DeleteAsync(string path, Dictionary<string, string> queryParams)
+        public async Task<ResponseHandler> DeleteAsync(string path, Dictionary<string, object> queryParams = null)
         {
-            var httpMsg = new HttpRequestMessage(HttpMethod.Put, _uriBase.OriginalString + path + _makeQuery(queryParams));
+            var httpMsg = new HttpRequestMessage(HttpMethod.Put, _uriBase.OriginalString + path + MakeQuery(queryParams));
 
             // send request and create handler object
             return new ResponseHandler(await _client.SendAsync(httpMsg));
@@ -288,9 +284,36 @@ namespace HttpMet
         /// </summary>
         /// <param name="queryParams"></param>
         /// <returns></returns>
-        private string _makeQuery(Dictionary<string, string> queryParams)
+        private string QueryFromObject(object obj)
         {
-            throw new NotImplementedException();
+            if (obj is null)
+            {
+                return string.Empty;
+            }
+
+            if (obj is Dictionary<string, object> dict)
+            {
+                return MakeQuery(dict);
+            }
+            else
+            {
+                return "?" + string.Join('&', obj.GetType().GetProperties().Select(q => $"{q.Name}={q.GetValue(obj)}"));
+            }
+        }
+
+        /// <summary>
+        /// Simple helper to make a short code
+        /// </summary>
+        /// <param name="queryParams"></param>
+        /// <returns></returns>
+        private string MakeQuery(Dictionary<string, object> queryParams)
+        {
+            if (queryParams is null || queryParams.Any() is false)
+            {
+                return string.Empty;
+            }
+
+            return "?" + string.Join('&', queryParams.Select(q => $"{q.Key}={q.Value}"));
         }
     }
 }
