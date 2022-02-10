@@ -17,7 +17,7 @@ namespace HttpMet
         /// <summary>
         /// A new instance of this class without preset url base
         /// </summary>
-        public static RestClient New { get => RestFactory.Provider.GetService<RestClient>(); }
+        public static RestClient New { get => RestFactory.GlobalProvider.GetService<RestClient>(); }
 
         /// <summary>
         /// Get base or empty if not has base
@@ -50,7 +50,7 @@ namespace HttpMet
         /// </summary>
         public RestClient()
         {
-            _client = RestFactory.Provider.GetService<HttpClient>();
+            _client = RestFactory.GlobalProvider.GetService<HttpClient>();
         }
 
         /// <summary>
