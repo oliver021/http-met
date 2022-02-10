@@ -17,12 +17,12 @@ namespace HttpMet
         /// <summary>
         /// Internal service provider.
         /// </summary>
-        internal static IServiceProvider Provider { get; private set; }
+        internal static IServiceProvider GlobalProvider { get; private set; }
 
         /// <summary>
         /// Transient service getter.
         /// </summary>
-        internal static HttpClient NewClient => Provider.GetService<HttpClient>();
+        internal static HttpClient NewClient => GlobalProvider.GetService<HttpClient>();
 
         /// <summary>
         /// Serializer instance to serialize/deserialize tasks.
@@ -48,7 +48,7 @@ namespace HttpMet
             collection.AddTransient<RestClient>();
 
             // build internal provider
-            Provider = collection.BuildServiceProvider();
+            GlobalProvider = collection.BuildServiceProvider();
         }
 
         /// <summary>
@@ -205,6 +205,68 @@ namespace HttpMet
         }
 
         /// <summary>
+        /// Create request delegate from request template
+        /// </summary>
+        /// <typeparam name="TDelegate"></typeparam>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static TDelegate RequestFromDelegate<TDelegate, T, TResult>(Action<T, HttpRequestMessage> build, IServiceProvider provider)
+            where TDelegate : Delegate
+        {
+            return (TDelegate)Request<T, TResult>(build, provider).Method.CreateDelegate(typeof(TDelegate), null);
+        }
+
+        /// <summary>
+        /// Create request delegate from request template
+        /// </summary>
+        /// <typeparam name="TDelegate"></typeparam>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static TDelegate RequestFromDelegate<TDelegate, T, T2, TResult>(Action<T, T2, HttpRequestMessage> build, IServiceProvider provider)
+            where TDelegate : Delegate
+        {
+            return (TDelegate)Request<T, T2, TResult>(build, provider).Method.CreateDelegate(typeof(TDelegate), null);
+        }
+
+        /// <summary>
+        /// Create request delegate from request template
+        /// </summary>
+        /// <typeparam name="TDelegate"></typeparam>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <typeparam name="T3"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static TDelegate RequestFromDelegate<TDelegate, T, T2, T3, TResult>(Action<T, T2, T3, HttpRequestMessage> build, IServiceProvider provider)
+            where TDelegate : Delegate
+        {
+            return (TDelegate)Request<T, T2, T3, TResult>(build, provider).Method.CreateDelegate(typeof(TDelegate), null);
+        }
+
+        /// <summary>
+        /// Create request delegate from request template
+        /// </summary>
+        /// <typeparam name="TDelegate"></typeparam>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <typeparam name="T3"></typeparam>
+        /// <typeparam name="T4"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static TDelegate RequestFromDelegate<TDelegate, T, T2, T3, T4, TResult>(Action<T, T2, T3, T4, HttpRequestMessage> build, IServiceProvider provider)
+            where TDelegate : Delegate
+        {
+            return (TDelegate)Request<T, T2, T3, T4, TResult>(build, provider).Method.CreateDelegate(typeof(TDelegate), null);
+        }
+
+        /// <summary>
         /// Build a delegate that define http request template.
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -220,7 +282,7 @@ namespace HttpMet
             return async (arg) =>
             {
                 // get http client from provider
-                var http = Provider.GetService<HttpClient>();
+                var http = GlobalProvider.GetService<HttpClient>();
 
                 // init http request
                 var msg = new HttpRequestMessage();
@@ -252,7 +314,7 @@ namespace HttpMet
             return async (arg, arg2, arg3) => 
             {
                 // get http client from provider
-                var http = Provider.GetService<HttpClient>();
+                var http = GlobalProvider.GetService<HttpClient>();
 
                 // init http request
                 var msg = new HttpRequestMessage();
@@ -283,7 +345,7 @@ namespace HttpMet
             return async (arg, arg2) =>
             {
                 // get http client from provider
-                var http = Provider.GetService<HttpClient>();
+                var http = GlobalProvider.GetService<HttpClient>();
 
                 // init http request
                 var msg = new HttpRequestMessage();
@@ -316,7 +378,133 @@ namespace HttpMet
             return async (arg, arg2, arg3, arg4) =>
             {
                 // get http client from provider
-                var http = Provider.GetService<HttpClient>();
+                var http = GlobalProvider.GetService<HttpClient>();
+
+                // init http request
+                var msg = new HttpRequestMessage();
+
+                // build message
+                build(arg, arg2, arg3, arg4, msg);
+
+                // make deserialization
+                return await Serializer.Deserialize<TResult>(await http.SendAsync(msg));
+            };
+        }
+
+        /// <summary>
+        /// Build a delegate that define http request template.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="build"></param>
+        /// <param name="provider"></param>
+        /// <returns></returns>
+        public static Func<T, Task<TResult>> Request<T, TResult>(Action<T, HttpRequestMessage> build, IServiceProvider provider)
+        {
+            if (build is null)
+            {
+                throw new ArgumentNullException(nameof(build));
+            }
+            return async (arg) =>
+            {
+                // get http client from provider
+                var http = provider.GetService<HttpClient>();
+
+                // init http request
+                var msg = new HttpRequestMessage();
+
+                // build message
+                build(arg, msg);
+
+                // make deserialization
+                return await Serializer.Deserialize<TResult>(await http.SendAsync(msg));
+            };
+        }
+
+        /// <summary>
+        /// Build a delegate that define http request template
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <typeparam name="T3"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static Func<T, T2, T3, Task<TResult>> Request<T, T2, T3, TResult>(Action<T, T2, T3, HttpRequestMessage> build, IServiceProvider provider)
+        {
+            if (build is null)
+            {
+                throw new ArgumentNullException(nameof(build));
+            }
+            // from delegate
+            return async (arg, arg2, arg3) =>
+            {
+                // get http client from provider
+                var http = provider.GetService<HttpClient>();
+
+                // init http request
+                var msg = new HttpRequestMessage();
+
+                // build message
+                build(arg, arg2, arg3, msg);
+
+                // make deserialization
+                return await Serializer.Deserialize<TResult>(await http.SendAsync(msg));
+            };
+        }
+
+        /// <summary>
+        /// Build a delegate that define http request template.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static Func<T, T2, Task<TResult>> Request<T, T2, TResult>(Action<T, T2, HttpRequestMessage> build, IServiceProvider provider)
+        {
+            if (build is null)
+            {
+                throw new ArgumentNullException(nameof(build));
+            }
+            // from delegate
+            return async (arg, arg2) =>
+            {
+                // get http client from provider
+                var http = provider.GetService<HttpClient>();
+
+                // init http request
+                var msg = new HttpRequestMessage();
+
+                // build message
+                build(arg, arg2, msg);
+
+                // make deserialization
+                return await Serializer.Deserialize<TResult>(await http.SendAsync(msg));
+            };
+        }
+
+        /// <summary>
+        /// Build a delegate that define http request template.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <typeparam name="T3"></typeparam>
+        /// <typeparam name="T4"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static Func<T, T2, T3, T4, Task<TResult>> Request<T, T2, T3, T4, TResult>(Action<T, T2, T3, T4, HttpRequestMessage> build, IServiceProvider provider)
+        {
+            if (build is null)
+            {
+                throw new ArgumentNullException(nameof(build));
+            }
+            // from delegate
+            return async (arg, arg2, arg3, arg4) =>
+            {
+                // get http client from provider
+                var http = provider.GetService<HttpClient>();
 
                 // init http request
                 var msg = new HttpRequestMessage();
