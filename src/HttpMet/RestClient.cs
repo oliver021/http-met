@@ -20,14 +20,25 @@ namespace HttpMet
         public static RestClient New { get => RestFactory.Provider.GetService<RestClient>(); }
 
         /// <summary>
+        /// Get base or empty if not has base
+        /// </summary>
+        public string BaseUrl => _uriBase is null ? string.Empty : _uriBase.OriginalString;
+
+        /// <summary>
         /// The uri base to build a complete request url
         /// </summary>
-        private readonly Uri _uriBase;
+        private readonly Uri _uriBase = null;
 
         /// <summary>
         /// http client to send request
         /// </summary>
         private HttpClient _client = null;
+
+        /// <summary>
+        /// Internal serializer instance
+        /// for default is <see cref="NewtonJsonSerializer"/>
+        /// </summary>
+        private IRestSerializer RestSerializer = RestFactory.DefaultSerializer;
         
         /// <summary>
         /// This dictionary contains basic header to send in request
@@ -107,18 +118,7 @@ namespace HttpMet
         /// <returns></returns>
         public RestClient UseBeaberToken(string accessToken)
         {
-            return this;
-        }
-
-        /// <summary>
-        /// Set basic authentication method to make a request
-        /// </summary>
-        /// <param name="username"></param>
-        /// <param name="password"></param>
-        /// <returns></returns>
-        public RestClient UseBasicAuthorization(string username, string password)
-        {
-            return this;
+            return UseHeader(HttpConstants.AuthorizationHeader, $"Bearer {accessToken}");
         }
 
         /// <summary>
@@ -130,8 +130,15 @@ namespace HttpMet
             return this;
         }
 
-        public RestClient SetEncodeHeader()
+        public RestClient UseSerializer(IRestSerializer serializer)
         {
+            if (serializer is null)
+            {
+                throw new ArgumentNullException(nameof(serializer));
+            }
+
+            RestSerializer = serializer;
+
             return this;
         }
 
@@ -175,7 +182,7 @@ namespace HttpMet
                     return PostAsync(uri, request);
 
                 case RestMethods.Put:
-                    return PutAsync(uri, request);
+                    return PutAsync(uri, request, null, BodyKind.Json);
 
                 case RestMethods.Delete:
                     return DeleteAsync(uri + QueryFromObject(request));
@@ -194,7 +201,41 @@ namespace HttpMet
         /// <returns></returns>
         public async Task<ResponseHandler> GetAsync(string path, Dictionary<string, object> queryParams = null)
         {
-            var httpMsg = new HttpRequestMessage(HttpMethod.Get, _uriBase.OriginalString + path + MakeQuery(queryParams));
+            var httpMsg = new HttpRequestMessage(HttpMethod.Get, BaseUrl + path + RestFactory.MakeQuery(queryParams));
+
+            // send request and create handler object
+            return new ResponseHandler(await _client.SendAsync(httpMsg));
+        }
+
+        /// <summary>
+        /// This method make a http request by GET method and recive a dictionary as query params
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="queryParams"></param>
+        /// <returns></returns>
+        public async Task<TResponse> GetAsync<TResponse>(string path, Dictionary<string, object> queryParams = null)
+        {
+            var httpMsg = new HttpRequestMessage(HttpMethod.Get, BaseUrl + path + RestFactory.MakeQuery(queryParams));
+
+            // send request and create handler object
+            var result = await _client.SendAsync(httpMsg);
+
+            // take from body response content
+            return await RestSerializer.Deserialize<TResponse>(result);
+        }
+
+        /// <summary>
+        /// This method make a http request by POST method and recive a dictionary as query params
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="queryParams"></param>
+        /// <returns></returns>
+        public async Task<ResponseHandler> PostAsync(string path, object data, Dictionary<string, object> queryParams = null, BodyKind bodyKind = BodyKind.Json)
+        {
+            var httpMsg = new HttpRequestMessage(HttpMethod.Post, BaseUrl + path + RestFactory.MakeQuery(queryParams));
+
+            // set content in body
+            SetContent(data, bodyKind, httpMsg);
 
             // send request and create handler object
             return new ResponseHandler(await _client.SendAsync(httpMsg));
@@ -206,9 +247,29 @@ namespace HttpMet
         /// <param name="path"></param>
         /// <param name="queryParams"></param>
         /// <returns></returns>
-        public async Task<ResponseHandler> PostAsync(string path, object data, Dictionary<string, object> queryParams = null, BodyKind bodyKind = BodyKind.Json)
+        public async Task<TResponse> PostAsync<TRequest, TResponse>(string path, TRequest request,Dictionary<string, object> queryParams = null)
         {
-            var httpMsg = new HttpRequestMessage(HttpMethod.Post, _uriBase.OriginalString + path + MakeQuery(queryParams));
+            var httpMsg = new HttpRequestMessage(HttpMethod.Post, BaseUrl + path + RestFactory.MakeQuery(queryParams));
+            
+            // put data in body
+            RestSerializer.Serialize(request, httpMsg);
+
+            // send request and create handler object
+            var result = await _client.SendAsync(httpMsg);
+
+            // take from body response content
+            return await RestSerializer.Deserialize<TResponse>(result);
+        }
+
+        /// <summary>
+        /// This method make a http request by PUT method and recive a dictionary as query params
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="queryParams"></param>
+        /// <returns></returns>
+        public async Task<ResponseHandler> PutAsync(string path, object data, Dictionary<string, object> queryParams = null, BodyKind bodyKind = BodyKind.Json)
+        {
+            var httpMsg = new HttpRequestMessage(HttpMethod.Put, BaseUrl + path + RestFactory.MakeQuery(queryParams));
 
             // set content in body
             SetContent(data, bodyKind, httpMsg);
@@ -223,15 +284,38 @@ namespace HttpMet
         /// <param name="path"></param>
         /// <param name="queryParams"></param>
         /// <returns></returns>
-        public async Task<ResponseHandler> PutAsync(string path, object data, Dictionary<string, object> queryParams = null, BodyKind bodyKind = BodyKind.Json)
+        public async Task<ResponseHandler> PutAsync<TRequest>(string path, TRequest request, Dictionary<string, object> queryParams = null)
         {
-            var httpMsg = new HttpRequestMessage(HttpMethod.Put, _uriBase.OriginalString + path + MakeQuery(queryParams));
+            var httpMsg = new HttpRequestMessage(HttpMethod.Put, BaseUrl + path + RestFactory.MakeQuery(queryParams));
 
-            // set content in body
-            SetContent(data, bodyKind, httpMsg);
+            // put data in body
+            RestSerializer.Serialize(request, httpMsg);
 
             // send request and create handler object
+            var result = await _client.SendAsync(httpMsg);
+
+            // take from body response content
             return new ResponseHandler(await _client.SendAsync(httpMsg));
+        }
+
+        /// <summary>
+        /// This method make a http request by PUT method and recive a dictionary as query params
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="queryParams"></param>
+        /// <returns></returns>
+        public async Task<TResponse> PutAsync<TRequest, TResponse>(string path, TRequest request, Dictionary<string, object> queryParams = null)
+        {
+            var httpMsg = new HttpRequestMessage(HttpMethod.Put, BaseUrl + path + RestFactory.MakeQuery(queryParams));
+
+            // put data in body
+            RestSerializer.Serialize(request, httpMsg);
+
+            // send request and create handler object
+            var result = await _client.SendAsync(httpMsg);
+
+            // take from body response content
+            return await RestSerializer.Deserialize<TResponse>(result);
         }
 
         /// <summary>
@@ -242,7 +326,7 @@ namespace HttpMet
         /// <returns></returns>
         public async Task<ResponseHandler> DeleteAsync(string path, Dictionary<string, object> queryParams = null)
         {
-            var httpMsg = new HttpRequestMessage(HttpMethod.Put, _uriBase.OriginalString + path + MakeQuery(queryParams));
+            var httpMsg = new HttpRequestMessage(HttpMethod.Put, BaseUrl + path + RestFactory.MakeQuery(queryParams));
 
             // send request and create handler object
             return new ResponseHandler(await _client.SendAsync(httpMsg));
@@ -293,7 +377,7 @@ namespace HttpMet
 
             if (obj is Dictionary<string, object> dict)
             {
-                return MakeQuery(dict);
+                return RestFactory.MakeQuery(dict);
             }
             else
             {
@@ -301,19 +385,5 @@ namespace HttpMet
             }
         }
 
-        /// <summary>
-        /// Simple helper to make a short code
-        /// </summary>
-        /// <param name="queryParams"></param>
-        /// <returns></returns>
-        private string MakeQuery(Dictionary<string, object> queryParams)
-        {
-            if (queryParams is null || queryParams.Any() is false)
-            {
-                return string.Empty;
-            }
-
-            return "?" + string.Join('&', queryParams.Select(q => $"{q.Key}={q.Value}"));
-        }
     }
 }

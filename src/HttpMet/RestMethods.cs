@@ -1,7 +1,7 @@
 ﻿namespace HttpMet
 {
     /// <summary>
-    /// The usual standard https methods
+    /// The usual standard https methods.
     /// </summary>
     public enum RestMethods
     {
